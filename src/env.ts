@@ -44,6 +44,11 @@ const envSchema: z.ZodObject = z.object({
   DATABASE_URL: z.url('DATABASE_URL must be a valid URL'),
   JWT_SECRET_KEY: z.string().min(10, 'JWT_SECRET_KEY must be set and at least 10 characters long'),
   LOG_DIR: z.string().default('logs'),
+  DB_HOST: z.string().min(1, 'DB_HOST must be set'),
+  DB_PORT: z.number().int().positive().default(5432),
+  DB_USER: z.string().min(1, 'DB_USER must be set'),
+  DB_PASSWORD: z.string().min(1, 'DB_PASSWORD must be set'),
+  DB_NAME: z.string().min(1, 'DB_NAME must be set'),
 });
 
 /**
@@ -60,6 +65,11 @@ const validateEnv = () => {
       DATABASE_URL: process.env.DATABASE_URL,
       JWT_SECRET_KEY: process.env.JWT_SECRET_KEY,
       LOG_DIR: process.env.LOG_DIR,
+      DB_HOST: process.env.DB_HOST!,
+      DB_PORT: Number(process.env.DB_PORT!) || 5432,
+      DB_USER: process.env.DB_USER!,
+      DB_PASSWORD: process.env.DB_PASSWORD!,
+      DB_NAME: process.env.DB_NAME!,
     });
   } catch (error) {
     logger.error('Invalid environment variables:');
