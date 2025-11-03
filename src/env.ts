@@ -73,7 +73,7 @@ const validateEnv = () => {
       DB_PASSWORD: process.env.DB_PASSWORD!,
       DB_NAME: process.env.DB_NAME!,
       AWS_SQS_OTP_QUEUE_URL: process.env.AWS_SQS_OTP_QUEUE_URL!,
-      AWS_REGION: process.env.AWS_REGION,
+      AWS_REGION: process.env.AWS_REGION!,
     });
   } catch (error) {
     logger.error('Invalid environment variables:');
