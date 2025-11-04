@@ -1,5 +1,6 @@
 import express, { type Router } from 'express';
 import { loginHandler, signupHandlerWithValidation } from '@/controllers/auth.controller';
+import { sendVerificationEmailWithValidation } from '@/controllers/verify.controller';
 
 const router: Router = express.Router();
 
@@ -117,5 +118,43 @@ router.route('/signup').post(signupHandlerWithValidation);
  *                   example: Invalid email or password
  */
 router.route('/login').post(loginHandler);
+
+/**
+ * @openapi
+ * /api/auth/verify-account/email-verification:
+ *   post:
+ *     summary: Verify user account via OTP
+ *     tags:
+ *       - Auth
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: john@example.com
+ *               type:
+ *                 type: string
+ *                 example: email_verification
+ *     responses:
+ *       200:
+ *         description: Account verified successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Account verified successfully
+ */
+router.route('/verify-account/email-verification').post(sendVerificationEmailWithValidation);
 
 export default router;
