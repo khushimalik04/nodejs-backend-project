@@ -157,4 +157,6 @@ router.route('/login').post(loginHandler);
  */
 router.route('/verify-account/email-verification').post(sendVerificationEmailWithValidation);
 
+router.route('/verify-account').post();
+
 export default router;
