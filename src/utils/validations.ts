@@ -62,3 +62,11 @@ export const TaskQuerySchema = z.object({
 export const TaskParamsSchema = z.object({
   id: z.uuid('Invalid task ID format'),
 });
+
+/**
+ * Verify OTP Schema
+ */
+export const EmailVerificationSchema = z.object({
+  email: z.email(),
+  type: z.enum(['email_verification', 'reset_password']).default('email_verification'),
+});

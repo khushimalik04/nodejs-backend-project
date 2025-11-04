@@ -49,6 +49,8 @@ const envSchema: z.ZodObject = z.object({
   DB_USER: z.string().min(1, 'DB_USER must be set'),
   DB_PASSWORD: z.string().min(1, 'DB_PASSWORD must be set'),
   DB_NAME: z.string().min(1, 'DB_NAME must be set'),
+  AWS_SQS_OTP_QUEUE_URL: z.url('AWS_SQS_OTP_QUEUE_URL must be a valid URL'),
+  AWS_REGION: z.string().default('ap-south-1'),
 });
 
 /**
@@ -70,6 +72,8 @@ const validateEnv = () => {
       DB_USER: process.env.DB_USER!,
       DB_PASSWORD: process.env.DB_PASSWORD!,
       DB_NAME: process.env.DB_NAME!,
+      AWS_SQS_OTP_QUEUE_URL: process.env.AWS_SQS_OTP_QUEUE_URL!,
+      AWS_REGION: process.env.AWS_REGION!,
     });
   } catch (error) {
     logger.error('Invalid environment variables:');
