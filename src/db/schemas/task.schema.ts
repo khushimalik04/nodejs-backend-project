@@ -7,8 +7,8 @@
  *  - Calendar Integration Pattern: Support for calendar events.
  */
 
-import { pgTable, varchar, text, timestamp } from 'drizzle-orm/pg-core';
-import { relations } from 'drizzle-orm';
+import { pgTable, varchar, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { relations, sql } from 'drizzle-orm';
 import { users } from './user.schema';
 
 /**
@@ -27,10 +27,10 @@ import { users } from './user.schema';
  * - updatedAt: Timestamp of when the task was last updated.
  */
 export const tasks = pgTable('tasks', {
-  id: varchar('id', { length: 36 })
+  id: uuid('id')
     .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  userId: varchar('user_id', { length: 36 })
+    .default(sql`gen_random_uuid()`),
+  userId: uuid('user_id')
     .references(() => users.id, { onDelete: 'cascade' })
     .notNull(),
   title: varchar('title', { length: 255 }).notNull(),

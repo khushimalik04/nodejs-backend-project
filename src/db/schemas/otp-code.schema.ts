@@ -7,8 +7,8 @@
  *  - Time-based Expiration Pattern: Automatic OTP expiration.
  */
 
-import { pgTable, varchar, timestamp } from 'drizzle-orm/pg-core';
-import { relations } from 'drizzle-orm';
+import { pgTable, varchar, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { relations, sql } from 'drizzle-orm';
 import { users } from './user.schema';
 
 /**
@@ -23,10 +23,10 @@ import { users } from './user.schema';
  * - createdAt: Timestamp of when the OTP was created.
  */
 export const otpCodes = pgTable('otp_codes', {
-  id: varchar('id', { length: 36 })
+  id: uuid('id')
     .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  userId: varchar('user_id', { length: 36 })
+    .default(sql`gen_random_uuid()`),
+  userId: uuid('user_id')
     .references(() => users.id, { onDelete: 'cascade' })
     .notNull(),
   code: varchar('code', { length: 6 }).notNull(),

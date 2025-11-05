@@ -8,8 +8,8 @@
  *  - Relational Mapping: Establishes relations with other tables.
  */
 
-import { pgTable, varchar, timestamp, boolean } from 'drizzle-orm/pg-core';
-import { relations } from 'drizzle-orm';
+import { pgTable, varchar, timestamp, boolean, uuid } from 'drizzle-orm/pg-core';
+import { relations, sql } from 'drizzle-orm';
 import { authTokens } from './auth-token.schema';
 import { tasks } from './task.schema';
 import { otpCodes } from './otp-code.schema';
@@ -19,20 +19,21 @@ import { reports } from './report.schema';
  * Users Table Definition
  *
  * Columns:
- * - id: Primary key, UUID string.
+ * - id: Primary key, PostgreSQL UUID with gen_random_uuid().
  * - username: Username of the user.
  * - email: Unique email address for the user.
  * - password: Hashed password for authentication.
  * - role: User role (admin, user, etc.).
  * - profile_picture_url: URL to user's profile picture.
+ * - is_verified: Boolean flag for email verification.
  * - google_connected: Boolean flag for Google OAuth connection.
- * - createdAt: Timestamp of when the user was created.
- * - updatedAt: Timestamp of when the user was last updated.
+ * - created_at: Timestamp of when the user was created.
+ * - updated_at: Timestamp of when the user was last updated.
  */
 export const users = pgTable('users', {
-  id: varchar('id', { length: 36 })
+  id: uuid('id')
     .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
+    .default(sql`gen_random_uuid()`),
   username: varchar('username', { length: 255 }).notNull(),
   email: varchar('email', { length: 255 }).notNull().unique(),
   password: varchar('password', { length: 255 }).notNull(),

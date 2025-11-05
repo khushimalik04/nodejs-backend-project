@@ -7,8 +7,8 @@
  *  - OAuth Integration Pattern: Support for multiple OAuth providers.
  */
 
-import { pgTable, varchar, text, timestamp } from 'drizzle-orm/pg-core';
-import { relations } from 'drizzle-orm';
+import { pgTable, varchar, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { relations, sql } from 'drizzle-orm';
 import { users } from './user.schema';
 
 /**
@@ -24,10 +24,10 @@ import { users } from './user.schema';
  * - createdAt: Timestamp of when the token was created.
  */
 export const authTokens = pgTable('auth_tokens', {
-  id: varchar('id', { length: 36 })
+  id: uuid('id')
     .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  userId: varchar('user_id', { length: 36 })
+    .default(sql`gen_random_uuid()`),
+  userId: uuid('user_id')
     .references(() => users.id, { onDelete: 'cascade' })
     .notNull(),
   accessToken: text('access_token').notNull(),
