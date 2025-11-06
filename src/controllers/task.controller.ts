@@ -48,9 +48,9 @@ const verifyUserAccess = (req: AuthenticatedRequest) => {
     throw ErrorHandler.AuthError('Authentication required');
   }
 
-  // if (!req.user.isVerified) {
-  //   throw ErrorHandler.Forbidden('Email verification required to access tasks');
-  // }
+  if (!req.user.isVerified) {
+    throw ErrorHandler.Forbidden('Email verification required to access tasks');
+  }
 
   logger.info('User access verified', {
     userId: req.user.id,
