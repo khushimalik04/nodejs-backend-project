@@ -30,7 +30,6 @@
  * @version 1.0.0
  */
 
-import type { Request } from 'express';
 import { eq, and, desc, asc, count, like } from 'drizzle-orm';
 import { db } from '@/db';
 import { tasks } from '@/db/schemas';
@@ -39,20 +38,7 @@ import ErrorHandler from '@/utils/errorHandler';
 import { CreateTaskSchema, UpdateTaskSchema, TaskQuerySchema, TaskParamsSchema } from '@/utils/validations';
 import logger from '@/core/logger';
 import { authMiddleware } from '@/middlewares/auth.middleware';
-
-/**
- * Enhanced Request interface with authenticated user
- */
-interface AuthenticatedRequest extends Request {
-  user: {
-    id: string;
-    email: string;
-    username: string;
-    isVerified: boolean;
-    role: string;
-  };
-}
-
+import type { AuthenticatedRequest } from '@/types/auth-request';
 /**
  * Middleware to verify user authentication and email verification
  * This should be applied to all task routes before the actual handlers
