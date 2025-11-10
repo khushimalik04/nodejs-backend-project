@@ -197,8 +197,22 @@ export const Response = {
 export function validate<T>(validationFn: (data: unknown) => T) {
   return (req: Request, _res: ExpressResponse, next: NextFunction) => {
     try {
-      const validated = validationFn(req.body);
-      req.body = validated;
+      const source =
+        req.body && Object.keys(req.body).length > 0
+          ? req.body
+          : req.query && Object.keys(req.query).length > 0
+            ? req.query
+            : req.params;
+
+      const validated = validationFn(source);
+
+      if (source === req.body) {
+        req.body = validated as unknown as Request['body'];
+      } else if (source === req.query) {
+        req.query = validated as unknown as Request['query'];
+      } else {
+        req.params = validated as unknown as Request['params'];
+      }
       next();
     } catch (error) {
       next(error instanceof Error ? ErrorHandler.ValidationError(error.message) : error);

@@ -23,6 +23,7 @@ import {
   deleteTaskWithValidation,
   getTaskStatsHandler,
 } from '@/controllers/task.controller';
+import { authMiddleware } from '@/middlewares/auth.middleware';
 
 const router: Router = express.Router();
 
@@ -441,7 +442,7 @@ router.get('/', ...getTasksWithValidation);
  *       500:
  *         description: Internal server error
  */
-router.get('/stats', getTaskStatsHandler);
+router.get('/stats', authMiddleware, getTaskStatsHandler);
 
 /**
  * @openapi

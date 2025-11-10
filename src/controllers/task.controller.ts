@@ -408,7 +408,7 @@ export const deleteTaskHandler = asyncHandler(async (req: AuthenticatedRequest) 
     title: existingTask.title,
   });
 
-  return Response.noContent('Task deleted successfully');
+  return Response.success('Task deleted successfully');
 });
 
 /**
