@@ -40,6 +40,7 @@ import logger from '@/core/logger';
 import { authMiddleware } from '@/middlewares/auth.middleware';
 import type { AuthenticatedRequest } from '@/types/auth-request';
 import { verifyUserAccess } from '@/middlewares/verifyUserAccess';
+import getGoogleConnectionStatus from '@/utils/googleStatus';
 
 /**
  * Create New Task Handler
@@ -116,6 +117,7 @@ export const createTaskHandler = asyncHandler(async (req: AuthenticatedRequest) 
     title: newTask.title,
   });
 
+  getGoogleConnectionStatus(req);
   return Response.created(newTask, 'Task created successfully');
 });
 
@@ -358,6 +360,7 @@ export const updateTaskHandler = asyncHandler(async (req: AuthenticatedRequest) 
     updatedFields: Object.keys(updates),
   });
 
+  getGoogleConnectionStatus(req);
   return Response.success(updatedTask, 'Task updated successfully');
 });
 
@@ -408,6 +411,7 @@ export const deleteTaskHandler = asyncHandler(async (req: AuthenticatedRequest) 
     title: existingTask.title,
   });
 
+  getGoogleConnectionStatus(req);
   return Response.success('Task deleted successfully');
 });
 
