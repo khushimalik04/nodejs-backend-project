@@ -27,7 +27,7 @@ import { EmailVerificationSchema, verifyOtpSchema } from '@/utils/validations';
 import ErrorHandler from '@/utils/errorHandler';
 import { users } from '@/db/schemas/user.schema';
 import { db } from '@/db';
-import { otpCodes } from '@/db/schemas';
+import { authTokens, otpCodes } from '@/db/schemas';
 import type { AuthenticatedRequest } from '@/types/auth-request';
 import { verifyUserAccess } from '@/middlewares/verifyUserAccess';
 
@@ -144,7 +144,96 @@ export const googleVerificationHandler = asyncHandler(async (req: AuthenticatedR
   return Response.success({ url }, 'Google OAuth URL generated');
 });
 
+/**
+ * Google OAuth callback handler (skeleton)
+ * - This endpoint will receive Google redirect with `code` and `state`.
+ * - Implementation: exchange `code` for tokens and store tokens in `auth_tokens` table.
+ * - Currently returns 501 to indicate not implemented.
+ */
 export const googleOAuthCallbackHandler = asyncHandler(async (req: ExpressRequest, _res: ExpressResponse) => {
-  const { code, state } = req.query;
-  return Response.success({ code: code ?? null, state: state ?? null }, 'Google OAuth callback route reached');
+  const code = (req.query.code as string) || (req.body.code as string);
+  const state = (req.query.state as string) || (req.body.state as string);
+
+  if (!code) {
+    throw ErrorHandler.BadRequest('Authorization code is required');
+  }
+
+  if (!state) {
+    throw ErrorHandler.BadRequest('Missing state');
+  }
+
+  const parsedState = JSON.parse(Buffer.from(state, 'base64').toString('utf-8')) as { email?: string };
+  // Determine user by email present in state
+  const email = parsedState.email as string | undefined;
+  if (!email) {
+    throw ErrorHandler.BadRequest('Missing email in state');
+  }
+
+  const existingUser = await db.select({ id: users.id }).from(users).where(eq(users.email, email));
+
+  const userId = existingUser[0].id;
+
+  // Exchange authorization code for tokens with Google
+  const tokenUrl = 'https://oauth2.googleapis.com/token';
+  const body = new URLSearchParams({
+    client_id: process.env.GOOGLE_CLIENT_ID as string,
+    client_secret: process.env.GOOGLE_CLIENT_SECRET as string,
+    code,
+    grant_type: 'authorization_code',
+    redirect_uri: process.env.GOOGLE_REDIRECT_URI as string,
+  });
+
+  let tokenResp;
+  try {
+    tokenResp = await fetch(tokenUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString(),
+    });
+  } catch (err) {
+    // Surface the underlying error message for easier debugging
+    throw ErrorHandler.InternalServerError('Failed to contact Google token endpoint', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+
+  if (!tokenResp.ok) {
+    const text = await tokenResp.text();
+    throw ErrorHandler.InternalServerError('Google token exchange failed', { status: tokenResp.status, body: text });
+  }
+
+  const tokenData = (await tokenResp.json()) as {
+    access_token?: string;
+    refresh_token?: string;
+    expires_in?: number;
+    id_token?: string;
+    scope?: string;
+    token_type?: string;
+  };
+
+  if (!tokenData?.access_token) {
+    throw ErrorHandler.InternalServerError('Invalid token response from Google');
+  }
+
+  const expiresAt = new Date(Date.now() + (tokenData.expires_in ? tokenData.expires_in * 1000 : 3600 * 1000));
+
+  // Persist tokens in auth_tokens table
+  try {
+    await db.insert(authTokens).values({
+      userId,
+      accessToken: tokenData.access_token,
+      refreshToken: tokenData.refresh_token ?? '',
+      provider: 'google',
+      expiresAt,
+    });
+
+    // mark user as googleConnected
+    await db.update(users).set({ googleConnected: true }).where(eq(users.id, userId));
+  } catch (err) {
+    throw ErrorHandler.DatabaseError('Failed to store auth tokens', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+
+  return Response.success({ message: 'Google account connected' }, 'Google OAuth callback handled');
 });
