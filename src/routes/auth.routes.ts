@@ -1,6 +1,11 @@
 import express, { type Router } from 'express';
 import { loginHandlerWithValidation, logoutHandler, signupHandlerWithValidation } from '@/controllers/auth.controller';
-import { sendVerificationEmailWithValidation, verifyAccountWithValidation } from '@/controllers/verify.controller';
+import {
+  googleVerificationHandler,
+  googleOAuthCallbackHandler,
+  sendVerificationEmailWithValidation,
+  verifyAccountWithValidation,
+} from '@/controllers/verify.controller';
 import { authMiddleware } from '@/middlewares/auth.middleware';
 
 const router: Router = express.Router();
@@ -276,6 +281,39 @@ router.route('/verify-account/email-verification').post(sendVerificationEmailWit
  *                   example: Email not found
  */
 router.route('/verify-account').post(verifyAccountWithValidation);
+
+/**
+ * @openapi
+ * /api/auth/verify-account/google-verification:
+ *   post:
+ *     summary: Verify user account using Google OAuth (placeholder)
+ *     tags:
+ *       - Auth
+ *     description: |
+ *       This endpoint will be used to verify a user's account using Google OAuth.
+ *       Implementation will be added later. For now it returns 501 Not Implemented.
+ *     responses:
+ *       501:
+ *         description: Not Implemented - Google verification not yet available
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Google verification not implemented yet
+ */
+router.route('/verify-account/google-verification').post(authMiddleware, googleVerificationHandler);
+
+/**
+ * Google OAuth callback route
+ * Google will redirect users to this endpoint with `code` and `state` query params.
+ */
+router.route('/verify-account/google_callback').get(googleOAuthCallbackHandler);
 
 /**
  * @openapi

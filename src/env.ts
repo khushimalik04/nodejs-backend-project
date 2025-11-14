@@ -61,6 +61,10 @@ const envSchema: z.ZodObject = z.object({
   AWS_SQS_OTP_QUEUE_URL: z.url('AWS_SQS_OTP_QUEUE_URL must be a valid URL'),
   AWS_REGION: z.string().default('ap-south-1'),
   AWS_S3_LOG_BUCKET_NAME: z.string().min(1, 'AWS_S3_LOG_BUCKET_NAME must be set'),
+  GOOGLE_CLIENT_ID: z.string().min(1, 'GOOGLE_CLIENT_ID must be set'),
+  GOOGLE_CLIENT_SECRET: z.string().min(1, 'GOOGLE_CLIENT_SECRET must be set'),
+  GOOGLE_REDIRECT_URI: z.string().min(1, 'GOOGLE_REDIRECT_URI must be set').optional(),
+  GOOGLE_OAUTH_SCOPE: z.string().default('openid email profile'),
 });
 
 /**
@@ -85,6 +89,10 @@ const validateEnv = () => {
       AWS_SQS_OTP_QUEUE_URL: process.env.AWS_SQS_OTP_QUEUE_URL!,
       AWS_REGION: process.env.AWS_REGION!,
       AWS_S3_LOG_BUCKET_NAME: process.env.AWS_S3_LOG_BUCKET_NAME!,
+      GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID!,
+      GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET!,
+      GOOGLE_REDIRECT_URI: process.env.GOOGLE_REDIRECT_URI!,
+      GOOGLE_OAUTH_SCOPE: process.env.GOOGLE_OAUTH_SCOPE!,
     });
   } catch (error) {
     logger.error('Invalid environment variables:');
