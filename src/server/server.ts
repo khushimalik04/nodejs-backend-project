@@ -18,6 +18,9 @@
 import express, { type Request, type Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import csurf from 'csurf';
+import hpp from 'hpp';
 import swaggerUi from 'swagger-ui-express';
 import { env } from '@/env';
 import { errorMiddleware } from '@/middlewares/error';
@@ -32,20 +35,62 @@ const app: express.Application = express();
 
 /**
  * Middleware Configuration
- * - JSON parsing
+ * - JSON parsing with size limits
  * - URL-encoded data parsing
- * - CORS with specified origin
+ * - CORS with specified origin and credentials
  * - Security headers with Helmet
+ * - Basic request protections (HPP)
+ * - Global rate limiting
  */
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(cors({ origin: env.CORS_URL as string, optionsSuccessStatus: 200 }));
+app.use(express.json({ limit: '10kb' }));
+app.use(express.urlencoded({ extended: true, limit: '10kb' }));
+
+// CORS: enable credentials and allow configured origin(s)
+const allowedOrigin = env.CORS_URL as string;
+app.use(cors({ origin: allowedOrigin, credentials: true, optionsSuccessStatus: 200 }));
+
 app.use(
   helmet({
     contentSecurityPolicy: env.NODE_ENV !== 'development',
     crossOriginEmbedderPolicy: env.NODE_ENV !== 'development',
   }),
 );
+
+// Protect against HTTP Parameter Pollution
+app.use(hpp());
+
+// Global rate limiter (light touch)
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 200, // limit each IP to 200 requests per windowMs
+});
+app.use(globalLimiter);
+
+// CSRF protection using cookies. This requires clients to fetch a token
+// (GET /api/auth/csrf-token) and include it in the `x-csrf-token` header
+// for state-changing requests when using cookie-based auth.
+const csrfProtection = csurf({ cookie: { httpOnly: true, secure: env.NODE_ENV === 'production', sameSite: 'strict' } });
+// Mount CSRF protection on API routes that may use cookie auth
+app.use('/api', csrfProtection);
+
+// Login-specific rate limiter (protect auth endpoints)
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // limit each IP to 10 login attempts per windowMs
+  message: 'Too many login attempts from this IP, please try again later.',
+});
+
+// Provide a CSRF token endpoint for browsers to fetch and include in state-changing requests
+app.get('/api/auth/csrf-token', (req: Request, res: Response) => {
+  try {
+    // csurf middleware attached to /api will have populated req.csrfToken
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const token = (req as any).csrfToken?.();
+    return res.json({ csrfToken: token });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: 'Unable to generate CSRF token' });
+  }
+});
 
 // Basic route for health check
 app.get(
