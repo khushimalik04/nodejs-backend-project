@@ -29,7 +29,11 @@ def lambda_handler(event, context):
             otp_record = create_otp_record(user_id, otp_type)
             cursor.execute("""
                 INSERT INTO otp_codes (id, user_id, code, type, expires_at, created_at)
-                VALUES (%s, %s, %s, %s, %s, %s)
+                VALUES (
+                    %s, %s, %s, %s,
+                    timezone('Asia/Kolkata', %s::timestamptz),
+                    timezone('Asia/Kolkata', %s::timestamptz)
+                )
             """, (
                 otp_record["id"],
                 otp_record["user_id"],
