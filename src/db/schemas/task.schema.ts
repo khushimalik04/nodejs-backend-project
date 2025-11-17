@@ -20,11 +20,13 @@ import { users } from './user.schema';
  * - title: Task title.
  * - description: Detailed task description.
  * - status: Task status (pending, in_progress, completed, etc.).
- * - startTime: Task start time.
- * - endTime: Task end time.
+ * - startTime: Task start time (stored in IST).
+ * - endTime: Task end time (stored in IST).
  * - calendar_event_id: Associated calendar event ID.
- * - createdAt: Timestamp of when the task was created.
- * - updatedAt: Timestamp of when the task was last updated.
+ * - createdAt: Timestamp of when the task was created (stored in IST).
+ * - updatedAt: Timestamp of when the task was last updated (stored in IST).
+ *
+ * Note: All timestamps are stored with timezone 'Asia/Kolkata' (IST - UTC+5:30)
  */
 export const tasks = pgTable('tasks', {
   id: uuid('id')
@@ -36,11 +38,17 @@ export const tasks = pgTable('tasks', {
   title: varchar('title', { length: 255 }).notNull(),
   description: text('description'),
   status: varchar('status', { length: 50 }).notNull().default('pending'),
-  startTime: timestamp('start_time'),
-  endTime: timestamp('end_time'),
+  startTime: timestamp('start_time', { withTimezone: true, mode: 'string' }),
+  endTime: timestamp('end_time', { withTimezone: true, mode: 'string' }),
   calendarEventId: varchar('calendar_event_id', { length: 255 }),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
+    .defaultNow()
+    .notNull()
+    .$defaultFn(() => sql`timezone('Asia/Kolkata', now())`),
+  updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' })
+    .defaultNow()
+    .notNull()
+    .$defaultFn(() => sql`timezone('Asia/Kolkata', now())`),
 });
 
 /**

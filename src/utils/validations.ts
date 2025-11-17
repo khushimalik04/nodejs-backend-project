@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { isISTFormat } from './helpers';
 
 /**
  * User-related validation schemas
@@ -26,8 +27,38 @@ export const CreateTaskSchema = z
     title: z.string().min(1, 'Title is required').max(255, 'Title must not exceed 255 characters').trim(),
     description: z.string().max(2000, 'Description must not exceed 2000 characters').optional().nullable(),
     status: z.enum(['pending', 'in_progress', 'completed', 'cancelled']).default('pending'),
-    startTime: z.iso.datetime('Invalid start time format').optional().nullable(),
-    endTime: z.iso.datetime('Invalid end time format').optional().nullable(),
+    startTime: z
+      .string()
+      .refine(
+        val => {
+          if (!val) {
+            return true;
+          }
+          return isISTFormat(val);
+        },
+        {
+          message:
+            'Invalid start time format. Use ISO 8601 format: YYYY-MM-DDTHH:mm:ssZ (e.g., 2025-11-18T09:00:00Z for 9 AM IST)',
+        },
+      )
+      .optional()
+      .nullable(),
+    endTime: z
+      .string()
+      .refine(
+        val => {
+          if (!val) {
+            return true;
+          }
+          return isISTFormat(val);
+        },
+        {
+          message:
+            'Invalid end time format. Use ISO 8601 format: YYYY-MM-DDTHH:mm:ssZ (e.g., 2025-11-18T17:00:00Z for 5 PM IST)',
+        },
+      )
+      .optional()
+      .nullable(),
     calendarEventId: z.string().max(255, 'Calendar event ID too long').optional().nullable(),
   })
   .refine(

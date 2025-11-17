@@ -88,9 +88,20 @@ interface TaskLike {
   id: string;
   title: string;
   description?: string | null;
-  startTime?: Date | null;
-  endTime?: Date | null;
+  startTime?: string | Date | null;
+  endTime?: string | Date | null;
   calendarEventId?: string | null;
+}
+
+/**
+ * Helper function to convert task time to ISO string
+ * Handles both string and Date types
+ */
+function toISOString(time: string | Date): string {
+  if (typeof time === 'string') {
+    return new Date(time).toISOString();
+  }
+  return time.toISOString();
 }
 
 export async function createCalendarEventForTask(userId: string, task: TaskLike): Promise<string | null> {
@@ -111,8 +122,8 @@ export async function createCalendarEventForTask(userId: string, task: TaskLike)
     const eventPayload: Record<string, unknown> = {
       summary: task.title,
       description: task.description ?? undefined,
-      start: { dateTime: task.startTime.toISOString() },
-      end: { dateTime: task.endTime.toISOString() },
+      start: { dateTime: toISOString(task.startTime) },
+      end: { dateTime: toISOString(task.endTime) },
     };
 
     const calendarId = 'primary';
@@ -136,7 +147,7 @@ export async function createCalendarEventForTask(userId: string, task: TaskLike)
       return null;
     }
 
-    await db.update(tasks).set({ calendarEventId: eventId, updatedAt: new Date() }).where(eq(tasks.id, task.id));
+    await db.update(tasks).set({ calendarEventId: eventId }).where(eq(tasks.id, task.id));
     return eventId;
   } catch (err) {
     logger.error('Failed to create calendar event for task', { err, userId, taskId: task.id });
@@ -162,8 +173,8 @@ export async function updateCalendarEventForTask(userId: string, task: TaskLike)
     const eventPayload: Record<string, unknown> = {
       summary: task.title,
       description: task.description ?? undefined,
-      start: { dateTime: task.startTime.toISOString() },
-      end: { dateTime: task.endTime.toISOString() },
+      start: { dateTime: toISOString(task.startTime) },
+      end: { dateTime: toISOString(task.endTime) },
     };
 
     const calendarId = 'primary';
@@ -190,7 +201,7 @@ export async function updateCalendarEventForTask(userId: string, task: TaskLike)
     }
 
     if (task.calendarEventId !== eventId) {
-      await db.update(tasks).set({ calendarEventId: eventId, updatedAt: new Date() }).where(eq(tasks.id, task.id));
+      await db.update(tasks).set({ calendarEventId: eventId }).where(eq(tasks.id, task.id));
     }
 
     return eventId;
