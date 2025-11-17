@@ -44,8 +44,9 @@ import {
   createCalendarEventForTask,
   updateCalendarEventForTask,
   deleteCalendarEventForTask,
-} from '@/utils/googleStatus';
+} from '@/core/google/googleStatus';
 import { type INewTask, type IUpdateTask } from '@/types/tasks';
+import { getCurrentISTTime } from '@/utils/helpers';
 
 /**
  * Create New Task Handler
@@ -94,8 +95,11 @@ export const createTaskHandler = asyncHandler(async (req: AuthenticatedRequest) 
 
   const { title, description, status, startTime, endTime } = req.body;
 
+  // Use current IST time if startTime is not provided
+  const taskStartTime = startTime ?? getCurrentISTTime();
+
   // Validate time constraints
-  if (startTime && endTime && new Date(startTime) >= new Date(endTime)) {
+  if (endTime && new Date(taskStartTime) >= new Date(endTime)) {
     throw ErrorHandler.ValidationError('Start time must be before end time');
   }
 
@@ -106,8 +110,8 @@ export const createTaskHandler = asyncHandler(async (req: AuthenticatedRequest) 
       title: title.trim(),
       description: description?.trim(),
       status: status ?? 'pending',
-      startTime: startTime ? new Date(startTime) : null,
-      endTime: endTime ? new Date(endTime) : null,
+      startTime: taskStartTime,
+      endTime: endTime ?? null,
       // Always initialize calendarEventId as null on create. We'll sync with Google and
       // persist the real calendar event id returned by Google.
       calendarEventId: null,
@@ -354,9 +358,7 @@ export const updateTaskHandler = asyncHandler(async (req: AuthenticatedRequest) 
   }
 
   // Prepare update object with only provided fields
-  const updates: Partial<typeof tasks.$inferInsert> & { updatedAt: Date } = {
-    updatedAt: new Date(),
-  };
+  const updates: Partial<typeof tasks.$inferInsert> = {};
 
   if (updateData.title !== undefined) {
     updates.title = updateData.title.trim();
@@ -368,10 +370,10 @@ export const updateTaskHandler = asyncHandler(async (req: AuthenticatedRequest) 
     updates.status = updateData.status;
   }
   if (updateData.startTime !== undefined) {
-    updates.startTime = updateData.startTime ? new Date(updateData.startTime) : null;
+    updates.startTime = updateData.startTime ?? null;
   }
   if (updateData.endTime !== undefined) {
-    updates.endTime = updateData.endTime ? new Date(updateData.endTime) : null;
+    updates.endTime = updateData.endTime ?? null;
   }
   if (updateData.calendarEventId !== undefined) {
     updates.calendarEventId = updateData.calendarEventId;

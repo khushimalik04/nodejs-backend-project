@@ -30,6 +30,7 @@ import { db } from '@/db';
 import { authTokens, otpCodes } from '@/db/schemas';
 import type { AuthenticatedRequest } from '@/types/auth-request';
 import { verifyUserAccess } from '@/middlewares/verifyUserAccess';
+import { formatToIST } from '@/utils/helpers';
 
 /**
  * Verify Account Handler
@@ -105,8 +106,11 @@ export const verifyAccountHandler = asyncHandler(async (req: ExpressRequest, _re
     throw ErrorHandler.BadRequest('Invalid OTP');
   }
 
-  const currentTime = new Date();
-  if (existingOtp[0].expiresAt < currentTime) {
+  // Compare timestamps as strings (both are in IST format)
+  const currentTime = new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
+  const expiryTime = new Date(existingOtp[0].expiresAt).toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
+
+  if (new Date(expiryTime) < new Date(currentTime)) {
     throw ErrorHandler.BadRequest('OTP has expired');
   }
 
@@ -215,7 +219,10 @@ export const googleOAuthCallbackHandler = asyncHandler(async (req: ExpressReques
     throw ErrorHandler.InternalServerError('Invalid token response from Google');
   }
 
-  const expiresAt = new Date(Date.now() + (tokenData.expires_in ? tokenData.expires_in * 1000 : 3600 * 1000));
+  // Calculate expiration time in IST
+  const expiresInSeconds = tokenData.expires_in ?? 3600;
+  const expiryDate = new Date(Date.now() + expiresInSeconds * 1000);
+  const expiresAt = formatToIST(expiryDate);
 
   // Persist tokens in auth_tokens table
   try {

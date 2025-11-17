@@ -20,8 +20,10 @@ import { users } from './user.schema';
  * - access_token: OAuth access token.
  * - refresh_token: OAuth refresh token.
  * - provider: OAuth provider (google, github, etc.).
- * - expiresAt: Token expiration timestamp.
- * - createdAt: Timestamp of when the token was created.
+ * - expiresAt: Token expiration timestamp (stored in IST).
+ * - createdAt: Timestamp of when the token was created (stored in IST).
+ *
+ * Note: All timestamps are stored with timezone 'Asia/Kolkata' (IST - UTC+5:30)
  */
 export const authTokens = pgTable('auth_tokens', {
   id: uuid('id')
@@ -33,8 +35,11 @@ export const authTokens = pgTable('auth_tokens', {
   accessToken: text('access_token').notNull(),
   refreshToken: text('refresh_token').notNull(),
   provider: varchar('provider', { length: 50 }).notNull(),
-  expiresAt: timestamp('expires_at').notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true, mode: 'string' }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
+    .defaultNow()
+    .notNull()
+    .$defaultFn(() => sql`timezone('Asia/Kolkata', now())`),
 });
 
 /**

@@ -72,13 +72,13 @@ const router: Router = express.Router();
  *           format: date-time
  *           nullable: true
  *           description: Scheduled start time for the task
- *           example: "2024-10-25T09:00:00Z"
+ *           example: "2025-11-18T09:00:00Z"
  *         endTime:
  *           type: string
  *           format: date-time
  *           nullable: true
  *           description: Scheduled end time for the task
- *           example: "2024-10-25T17:00:00Z"
+ *           example: "2025-11-20T17:00:00Z"
  *         calendarEventId:
  *           type: string
  *           nullable: true
@@ -88,12 +88,12 @@ const router: Router = express.Router();
  *           type: string
  *           format: date-time
  *           description: Task creation timestamp
- *           example: "2024-10-22T10:30:00Z"
+ *           example: "2025-11-22T10:30:00Z"
  *         updatedAt:
  *           type: string
  *           format: date-time
  *           description: Last update timestamp
- *           example: "2024-10-22T10:30:00Z"
+ *           example: "2025-11-22T10:30:00Z"
  *
  *     CreateTaskRequest:
  *       type: object
@@ -123,13 +123,13 @@ const router: Router = express.Router();
  *           format: date-time
  *           nullable: true
  *           description: Scheduled start time
- *           example: "2024-10-25T09:00:00Z"
+ *           example: "2025-11-25T09:00:00Z"
  *         endTime:
  *           type: string
  *           format: date-time
  *           nullable: true
  *           description: Scheduled end time
- *           example: "2024-10-25T17:00:00Z"
+ *           example: "2025-11-25T17:00:00Z"
  *         calendarEventId:
  *           type: string
  *           nullable: true
@@ -161,13 +161,13 @@ const router: Router = express.Router();
  *           format: date-time
  *           nullable: true
  *           description: Updated start time
- *           example: "2024-10-25T10:00:00Z"
+ *           example: "2025-11-25T10:00:00Z"
  *         endTime:
  *           type: string
  *           format: date-time
  *           nullable: true
  *           description: Updated end time
- *           example: "2024-10-25T18:00:00Z"
+ *           example: "2025-11-25T18:00:00Z"
  *         calendarEventId:
  *           type: string
  *           nullable: true
@@ -350,14 +350,14 @@ router.post('/', ...createTaskWithValidation);
  *           type: string
  *           format: date-time
  *         description: Filter tasks starting from this date
- *         example: "2024-10-01T00:00:00Z"
+ *         example: "2025-11-01T00:00:00Z"
  *       - in: query
  *         name: endDate
  *         schema:
  *           type: string
  *           format: date-time
  *         description: Filter tasks ending before this date
- *         example: "2024-10-31T23:59:59Z"
+ *         example: "2025-11-31T23:59:59Z"
  *     responses:
  *       200:
  *         description: Tasks retrieved successfully

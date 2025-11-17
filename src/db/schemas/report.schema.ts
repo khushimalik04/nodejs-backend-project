@@ -21,7 +21,9 @@ import { users } from './user.schema';
  * - s3_url: S3 URL where the report file is stored.
  * - ai_summary: AI-generated summary of the report.
  * - status: Report status (generating, completed, failed, etc.).
- * - createdAt: Timestamp of when the report was created.
+ * - createdAt: Timestamp of when the report was created (stored in IST).
+ *
+ * Note: All timestamps are stored with timezone 'Asia/Kolkata' (IST - UTC+5:30)
  */
 export const reports = pgTable('reports', {
   id: uuid('id')
@@ -34,7 +36,10 @@ export const reports = pgTable('reports', {
   s3Url: varchar('s3_url', { length: 500 }).notNull(),
   aiSummary: text('ai_summary'),
   status: varchar('status', { length: 50 }).notNull().default('generating'),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
+    .defaultNow()
+    .notNull()
+    .$defaultFn(() => sql`timezone('Asia/Kolkata', now())`),
 });
 
 /**
