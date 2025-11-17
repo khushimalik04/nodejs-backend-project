@@ -40,11 +40,12 @@ import logger from '@/core/logger';
 import { authMiddleware } from '@/middlewares/auth.middleware';
 import type { AuthenticatedRequest } from '@/types/auth-request';
 import { verifyUserAccess } from '@/middlewares/verifyUserAccess';
-import getGoogleConnectionStatus, {
+import {
   createCalendarEventForTask,
   updateCalendarEventForTask,
   deleteCalendarEventForTask,
 } from '@/utils/googleStatus';
+import { type INewTask, type IUpdateTask } from '@/types/tasks';
 
 /**
  * Create New Task Handler
@@ -91,7 +92,7 @@ import getGoogleConnectionStatus, {
 export const createTaskHandler = asyncHandler(async (req: AuthenticatedRequest) => {
   verifyUserAccess(req);
 
-  const { title, description, status, startTime, endTime, calendarEventId } = req.body;
+  const { title, description, status, startTime, endTime } = req.body;
 
   // Validate time constraints
   if (startTime && endTime && new Date(startTime) >= new Date(endTime)) {
@@ -128,7 +129,7 @@ export const createTaskHandler = asyncHandler(async (req: AuthenticatedRequest) 
   let calendarSyncMessage = 'Not attempted';
 
   try {
-    const eventId = await createCalendarEventForTask(req.user.id, newTask as any);
+    const eventId = await createCalendarEventForTask(req.user.id, newTask as INewTask);
     if (eventId) {
       // ensure response contains calendarEventId
       newTask.calendarEventId = eventId;
@@ -397,7 +398,7 @@ export const updateTaskHandler = asyncHandler(async (req: AuthenticatedRequest) 
   let calendarSyncMessage = 'Not attempted';
 
   try {
-    const eventId = await updateCalendarEventForTask(req.user.id, updatedTask as any);
+    const eventId = await updateCalendarEventForTask(req.user.id, updatedTask as IUpdateTask);
     if (eventId) {
       updatedTask.calendarEventId = eventId;
       calendarSynced = true;
