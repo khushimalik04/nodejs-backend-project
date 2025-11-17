@@ -19,13 +19,12 @@ import logger from '@/core/logger';
 import * as schema from './schemas';
 
 const connectionString = env.DATABASE_URL as string;
+const isTest = env.NODE_ENV === 'test';
 
 // AWS RDS connection pool with SSL
 const pool = new Pool({
   connectionString,
-  ssl: {
-    rejectUnauthorized: false, // Required for AWS RDS
-  },
+  ssl: isTest ? false : { rejectUnauthorized: false }, // Required for AWS RDS
   max: 20,
   min: 5,
   idleTimeoutMillis: 30000,

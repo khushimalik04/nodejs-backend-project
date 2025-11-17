@@ -36,6 +36,7 @@ import { uploadLogToS3 } from './aws/s3.service';
 
 // Use process.env directly to avoid circular dependency with @/env
 const dir = process.env.LOG_DIR ?? './logs';
+const isTest = process.env.NODE_ENV === 'test';
 
 // Create log directory if it doesn't exist
 if (!fs.existsSync(dir)) {
@@ -87,10 +88,12 @@ const dailyRotateFile: DailyRotateFile = new DailyRotateFile({
 });
 
 dailyRotateFile.on('new', async (filename: string) => {
-  try {
-    await uploadLogToS3(filename);
-  } catch (error) {
-    console.error('Error uploading log file to S3:', error);
+  if (!isTest) {
+    try {
+      await uploadLogToS3(filename);
+    } catch (error) {
+      console.error('Error uploading log file to S3:', error);
+    }
   }
 });
 
