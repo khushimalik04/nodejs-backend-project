@@ -7,11 +7,11 @@
 
 import express, { type Router } from 'express';
 import {
-	listUsersWithAuth,
-	getUserByIdWithAuth,
-	updateUserWithAuth,
-	deleteUserWithAuth,
-	getCurrentUserWithAuth,
+  listUsersWithAuth,
+  getUserByIdWithAuth,
+  updateUserWithAuth,
+  deleteUserWithAuth,
+  getCurrentUserWithAuth,
 } from '@/controllers/user.controller';
 
 const router: Router = express.Router();

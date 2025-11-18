@@ -3,7 +3,7 @@ jest.mock('bcrypt', () => ({
   __esModule: true,
   default: {
     genSalt: jest.fn(async () => 'salt'),
-    hash: jest.fn(async (_p: string, _s: string) => 'hashed-pass'),
+    hash: jest.fn(async () => 'hashed-pass'),
     compare: jest.fn(async (p: string, h: string) => p === 'plain' && h === 'hashed-pass'),
   },
 }));
@@ -18,6 +18,7 @@ jest.mock('jsonwebtoken', () => ({
 import { hashPassword, comparePasswords } from '../../src/utils/helpers';
 import { generateJWTandSetCookie } from '../../src/utils/jwt_session';
 import { SignupSchema, LoginSchema, CreateTaskSchema, TaskParamsSchema } from '../../src/utils/validations';
+import type { Response } from 'express';
 
 describe('helpers', () => {
   it('hashPassword returns hashed string', async () => {
@@ -39,11 +40,11 @@ describe('helpers', () => {
 
 describe('jwt_session', () => {
   it('generateJWTandSetCookie signs and sets cookie', () => {
-    const res: any = { cookie: jest.fn() };
+    const res = { cookie: jest.fn() } as unknown as Response;
     const token = generateJWTandSetCookie(res, 'user123');
     expect(typeof token).toBe('string');
     expect(res.cookie).toHaveBeenCalled();
-    const [name, value, options] = res.cookie.mock.calls[0];
+    const [name, value, options] = (res.cookie as jest.Mock).mock.calls[0];
     expect(name).toBe('token');
     expect(value).toBe(token);
     expect(options).toBeDefined();
@@ -63,13 +64,17 @@ describe('validations', () => {
 
   it('CreateTaskSchema validates start/end times correctly', () => {
     // valid when start < end
-    expect(() => CreateTaskSchema.parse({ title: 'T', startTime: '2024-01-01T00:00:00Z', endTime: '2024-01-01T01:00:00Z' })).not.toThrow();
+    expect(() =>
+      CreateTaskSchema.parse({ title: 'T', startTime: '2024-01-01T00:00:00Z', endTime: '2024-01-01T01:00:00Z' }),
+    ).not.toThrow();
     // invalid when start >= end
-    expect(() => CreateTaskSchema.parse({ title: 'T', startTime: '2024-01-01T02:00:00Z', endTime: '2024-01-01T01:00:00Z' })).toThrow();
+    expect(() =>
+      CreateTaskSchema.parse({ title: 'T', startTime: '2024-01-01T02:00:00Z', endTime: '2024-01-01T01:00:00Z' }),
+    ).toThrow();
   });
 
   it('TaskParamsSchema rejects non-uuid', () => {
-    expect(() => TaskParamsSchema.parse({ id: 'not-a-uuid' } as any)).toThrow();
+    expect(() => TaskParamsSchema.parse({ id: 'not-a-uuid' })).toThrow();
     // valid uuid should not throw
     expect(() => TaskParamsSchema.parse({ id: '550e8400-e29b-41d4-a716-446655440000' })).not.toThrow();
   });

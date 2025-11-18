@@ -57,7 +57,7 @@ import { z } from 'zod';
 import { eq } from 'drizzle-orm';
 import { db } from '@/db';
 import { users } from '@/db/schemas';
-import { asyncHandler, Response, validate } from '@/utils/asyncHandler';
+import { asyncHandler, Response } from '@/utils/asyncHandler';
 import ErrorHandler from '@/utils/errorHandler';
 import logger from '@/core/logger';
 import { authMiddleware } from '@/middlewares/auth.middleware';
@@ -68,9 +68,16 @@ export const baseAPIHandler = asyncHandler(async () => {
 });
 
 // List users (protected)
-export const listUsersHandler = asyncHandler(async (req: Request) => {
+export const listUsersHandler = asyncHandler(async (_req: Request) => {
   const all = await db
-    .select({ id: users.id, username: users.username, email: users.email, role: users.role, isVerified: users.isVerified, createdAt: users.createdAt })
+    .select({
+      id: users.id,
+      username: users.username,
+      email: users.email,
+      role: users.role,
+      isVerified: users.isVerified,
+      createdAt: users.createdAt,
+    })
     .from(users);
 
   return Response.success(all, 'Users retrieved');
@@ -81,7 +88,14 @@ export const getUserByIdHandler = asyncHandler(async (req: Request) => {
   const { id } = req.params as { id: string };
 
   const [user] = await db
-    .select({ id: users.id, username: users.username, email: users.email, role: users.role, isVerified: users.isVerified, createdAt: users.createdAt })
+    .select({
+      id: users.id,
+      username: users.username,
+      email: users.email,
+      role: users.role,
+      isVerified: users.isVerified,
+      createdAt: users.createdAt,
+    })
     .from(users)
     .where(eq(users.id, id))
     .limit(1);
@@ -106,27 +120,35 @@ export const updateUserHandler = asyncHandler(async (req: Request) => {
   // Validate incoming update
   try {
     UpdateUserSchema.parse(updateData);
-  } catch (err) {
+  } catch {
     throw ErrorHandler.ValidationError('Invalid update data');
   }
 
-  const [existing] = await db
-    .select({ id: users.id })
-    .from(users)
-    .where(eq(users.id, id))
-    .limit(1);
+  const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.id, id)).limit(1);
 
   if (!existing) {
     throw ErrorHandler.NotFound('User not found');
   }
 
   const updates: Record<string, unknown> = {};
-  if (updateData.username !== undefined) updates.username = String(updateData.username).trim();
-  if (updateData.email !== undefined) updates.email = String(updateData.email).trim();
+  if (updateData.username !== undefined) {
+    updates.username = String(updateData.username).trim();
+  }
+  if (updateData.email !== undefined) {
+    updates.email = String(updateData.email).trim();
+  }
 
-  const [updated] = await db.update(users).set(updates).where(eq(users.id, id)).returning({ id: users.id, username: users.username, email: users.email, role: users.role, isVerified: users.isVerified });
+  const [updated] = await db.update(users).set(updates).where(eq(users.id, id)).returning({
+    id: users.id,
+    username: users.username,
+    email: users.email,
+    role: users.role,
+    isVerified: users.isVerified,
+  });
 
-  if (!updated) throw ErrorHandler.InternalServerError('Failed to update user');
+  if (!updated) {
+    throw ErrorHandler.InternalServerError('Failed to update user');
+  }
 
   logger.info('User updated', { userId: id });
 
@@ -137,11 +159,7 @@ export const updateUserHandler = asyncHandler(async (req: Request) => {
 export const deleteUserHandler = asyncHandler(async (req: Request) => {
   const { id } = req.params as { id: string };
 
-  const [existing] = await db
-    .select({ id: users.id })
-    .from(users)
-    .where(eq(users.id, id))
-    .limit(1);
+  const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.id, id)).limit(1);
 
   if (!existing) {
     throw ErrorHandler.NotFound('User not found');
@@ -153,17 +171,28 @@ export const deleteUserHandler = asyncHandler(async (req: Request) => {
 });
 
 // Get current logged-in user (protected)
-export const getCurrentUserHandler = asyncHandler(async (req: Request & { user?: any }) => {
+export const getCurrentUserHandler = asyncHandler(async (req: Request & { user?: { id: string } }) => {
   const u = req.user;
-  if (!u) throw ErrorHandler.AuthError('Not authenticated');
+  if (!u) {
+    throw ErrorHandler.AuthError('Not authenticated');
+  }
 
   const [user] = await db
-    .select({ id: users.id, username: users.username, email: users.email, role: users.role, isVerified: users.isVerified, createdAt: users.createdAt })
+    .select({
+      id: users.id,
+      username: users.username,
+      email: users.email,
+      role: users.role,
+      isVerified: users.isVerified,
+      createdAt: users.createdAt,
+    })
     .from(users)
     .where(eq(users.id, u.id))
     .limit(1);
 
-  if (!user) throw ErrorHandler.NotFound('User not found');
+  if (!user) {
+    throw ErrorHandler.NotFound('User not found');
+  }
 
   return Response.success(user, 'Current user');
 });
