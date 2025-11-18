@@ -30,12 +30,12 @@
  * @version 1.0.0
  */
 
-import { eq, and, desc, asc, count, like } from 'drizzle-orm';
+import { eq, and, or, desc, asc, count, like, gte, lte, isNull } from 'drizzle-orm';
 import { db } from '@/db';
 import { tasks } from '@/db/schemas';
 import { asyncHandler, Response, validate } from '@/utils/asyncHandler';
 import ErrorHandler from '@/utils/errorHandler';
-import { CreateTaskSchema, UpdateTaskSchema, TaskQuerySchema, TaskParamsSchema } from '@/utils/validations';
+import { CreateTaskSchema, UpdateTaskSchema, TaskQuerySchema } from '@/utils/validations';
 import logger from '@/core/logger';
 import { authMiddleware } from '@/middlewares/auth.middleware';
 import type { AuthenticatedRequest } from '@/types/auth-request';
@@ -46,7 +46,7 @@ import {
   deleteCalendarEventForTask,
 } from '@/core/google/googleStatus';
 import { type INewTask, type IUpdateTask } from '@/types/tasks';
-import { getCurrentISTTime } from '@/utils/helpers';
+import { formatToIST, getCurrentISTTime } from '@/utils/helpers';
 
 /**
  * Create New Task Handler
@@ -214,6 +214,9 @@ export const getTasksHandler = asyncHandler(async (req: AuthenticatedRequest) =>
     endDate,
   } = req.query;
 
+  const newStartDate = startDate ? formatToIST(startDate as string) : null;
+  const newEndDate = endDate ? formatToIST(endDate as string) : null;
+
   // Build dynamic where conditions
   const whereConditions = [eq(tasks.userId, req.user.id)];
 
@@ -225,12 +228,20 @@ export const getTasksHandler = asyncHandler(async (req: AuthenticatedRequest) =>
     whereConditions.push(like(tasks.title, `%${search}%`));
   }
 
-  if (startDate) {
-    whereConditions
-      .push
-      // Filter tasks that start after the given date
-      // You might want to adjust this based on your business logic
-      ();
+  if (newStartDate) {
+    // Filter tasks that start on or after the given date, or have no start time
+    const startCondition = or(gte(tasks.startTime, newStartDate as string), isNull(tasks.startTime));
+    if (startCondition) {
+      whereConditions.push(startCondition);
+    }
+  }
+
+  if (newEndDate) {
+    // Filter tasks that end on or before the given date, or have no end time
+    const endCondition = or(lte(tasks.endTime, newEndDate as string), isNull(tasks.endTime));
+    if (endCondition) {
+      whereConditions.push(endCondition);
+    }
   }
 
   // Calculate offset for pagination
@@ -297,11 +308,7 @@ export const getTaskByIdHandler = asyncHandler(async (req: AuthenticatedRequest)
 
   const { id } = req.params;
 
-  const [task] = await db
-    .select()
-    .from(tasks)
-    .where(eq(tasks.id, id))
-    .limit(1);
+  const [task] = await db.select().from(tasks).where(eq(tasks.id, id)).limit(1);
 
   if (!task) {
     throw ErrorHandler.NotFound('Task not found');
@@ -345,11 +352,7 @@ export const updateTaskHandler = asyncHandler(async (req: AuthenticatedRequest) 
 
   // Check if task exists and belongs to user
 
-  const [existingTask] = await db
-    .select()
-    .from(tasks)
-    .where(eq(tasks.id, id))
-    .limit(1);
+  const [existingTask] = await db.select().from(tasks).where(eq(tasks.id, id)).limit(1);
 
   if (!existingTask) {
     throw ErrorHandler.NotFound('Task not found');

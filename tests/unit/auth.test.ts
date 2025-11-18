@@ -24,6 +24,6 @@ describe('Small unit tests - ErrorHandler & Response helpers', () => {
     expect(s).toHaveProperty('data');
     expect(c.statusCode).toBe(201);
     expect(p.meta).toBeDefined();
-    expect((p.meta as any).pagination.total).toBe(1);
+    expect((p.meta as { pagination: { total: number } }).pagination.total).toBe(1);
   });
 });
