@@ -27,8 +27,10 @@ import { reports } from './report.schema';
  * - profile_picture_url: URL to user's profile picture.
  * - is_verified: Boolean flag for email verification.
  * - google_connected: Boolean flag for Google OAuth connection.
- * - created_at: Timestamp of when the user was created.
- * - updated_at: Timestamp of when the user was last updated.
+ * - created_at: Timestamp of when the user was created (stored in IST).
+ * - updated_at: Timestamp of when the user was last updated (stored in IST).
+ *
+ * Note: All timestamps are stored with timezone 'Asia/Kolkata' (IST - UTC+5:30)
  */
 export const users = pgTable('users', {
   id: uuid('id')
@@ -41,8 +43,14 @@ export const users = pgTable('users', {
   profilePictureUrl: varchar('profile_picture_url', { length: 500 }),
   isVerified: boolean('is_verified').default(false).notNull(),
   googleConnected: boolean('google_connected').default(false).notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
+    .defaultNow()
+    .notNull()
+    .$defaultFn(() => sql`timezone('Asia/Kolkata', now())`),
+  updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'string' })
+    .defaultNow()
+    .notNull()
+    .$defaultFn(() => sql`timezone('Asia/Kolkata', now())`),
 });
 
 /**
