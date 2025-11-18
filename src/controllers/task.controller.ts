@@ -296,10 +296,15 @@ export const getTaskByIdHandler = asyncHandler(async (req: AuthenticatedRequest)
   const [task] = await db
     .select()
     .from(tasks)
-    .where(and(eq(tasks.id, id), eq(tasks.userId, req.user.id)))
+    .where(eq(tasks.id, id))
     .limit(1);
 
   if (!task) {
+    throw ErrorHandler.NotFound('Task not found');
+  }
+
+  // If the task exists but belongs to another user, hide details
+  if (String(task.userId) !== String(req.user.id)) {
     throw ErrorHandler.NotFound('Task not found or access denied');
   }
 
@@ -335,14 +340,20 @@ export const updateTaskHandler = asyncHandler(async (req: AuthenticatedRequest) 
   const updateData = req.body;
 
   // Check if task exists and belongs to user
+
   const [existingTask] = await db
     .select()
     .from(tasks)
-    .where(and(eq(tasks.id, id), eq(tasks.userId, req.user.id)))
+    .where(eq(tasks.id, id))
     .limit(1);
 
   if (!existingTask) {
-    throw ErrorHandler.NotFound('Task not found or access denied');
+    throw ErrorHandler.NotFound('Task not found');
+  }
+
+  // If exists but not owned, return Forbidden
+  if (String(existingTask.userId) !== String(req.user.id)) {
+    throw ErrorHandler.Forbidden('Access denied to this task');
   }
 
   // Validate time constraints if both times are provided
@@ -441,15 +452,20 @@ export const deleteTaskHandler = asyncHandler(async (req: AuthenticatedRequest) 
 
   const { id } = req.params;
 
-  // Check if task exists and belongs to user
+  // Check if task exists
   const [existingTask] = await db
-    .select({ id: tasks.id, title: tasks.title, calendarEventId: tasks.calendarEventId })
+    .select({ id: tasks.id, title: tasks.title, calendarEventId: tasks.calendarEventId, userId: tasks.userId })
     .from(tasks)
-    .where(and(eq(tasks.id, id), eq(tasks.userId, req.user.id)))
+    .where(eq(tasks.id, id))
     .limit(1);
 
   if (!existingTask) {
-    throw ErrorHandler.NotFound('Task not found or access denied');
+    throw ErrorHandler.NotFound('Task not found');
+  }
+
+  // If exists but belongs to another user, return Forbidden
+  if (String(existingTask.userId) !== String(req.user.id)) {
+    throw ErrorHandler.Forbidden('Access denied to this task');
   }
 
   // Delete the task
@@ -581,14 +597,6 @@ export const updateTaskWithValidation = [
   updateTaskHandler,
 ];
 
-export const getTaskByIdWithValidation = [
-  validate(data => TaskParamsSchema.parse(data)),
-  authMiddleware,
-  getTaskByIdHandler,
-];
+export const getTaskByIdWithValidation = [authMiddleware, getTaskByIdHandler];
 
-export const deleteTaskWithValidation = [
-  validate(data => TaskParamsSchema.parse(data)),
-  authMiddleware,
-  deleteTaskHandler,
-];
+export const deleteTaskWithValidation = [authMiddleware, deleteTaskHandler];

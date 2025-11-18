@@ -6,7 +6,13 @@
  */
 
 import express, { type Router } from 'express';
-import { baseAPIHandler } from '@/controllers/user.controller';
+import {
+	listUsersWithAuth,
+	getUserByIdWithAuth,
+	updateUserWithAuth,
+	deleteUserWithAuth,
+	getCurrentUserWithAuth,
+} from '@/controllers/user.controller';
 
 const router: Router = express.Router();
 
@@ -29,6 +35,12 @@ const router: Router = express.Router();
  *                   type: string
  *                   example: Hello from the User API
  */
-router.route('/').get(baseAPIHandler);
+// Protected user CRUD routes
+// Note: place `/me` before `/:id` to avoid param collision
+router.get('/me', ...getCurrentUserWithAuth);
+router.get('/:id', ...getUserByIdWithAuth);
+router.put('/:id', ...updateUserWithAuth);
+router.delete('/:id', ...deleteUserWithAuth);
+router.get('/', ...listUsersWithAuth);
 
 export default router;
