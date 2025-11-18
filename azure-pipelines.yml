@@ -1,0 +1,149 @@
+trigger:
+  branches:
+    include:
+      - main
+      - dev
+
+pr:
+  branches:
+    include:
+      - "*"
+
+variables:
+  # AWS Region
+  AWS_REGION: "ap-south-1"
+
+  # ECR Repository
+  ECR_REPOSITORY: "tasks-api-repo"
+
+  # ECS Settings
+  ECS_CLUSTER: "tasks-api-cluster"
+  ECS_SERVICE: "tasks-api-service"
+
+  # Docker Image Tag – unique per pipeline run
+  IMAGE_TAG: "$(Build.BuildId)"
+
+stages:
+- stage: Tests
+  displayName: "Run Unit + Integration Tests"
+  jobs:
+    - job: RunTests
+      pool:
+        vmImage: "ubuntu-latest"
+
+      steps:
+        - checkout: self
+
+        # Install pnpm
+        - task: NodeTool@0
+          inputs:
+            versionSpec: "18.x"
+          displayName: "Install Node.js"
+
+        - script: |
+            npm install -g pnpm
+            pnpm install
+          displayName: "Install dependencies"
+
+        # Run tests with .env.test
+        - script: |
+            echo "Running Jest tests..."
+            pnpm test
+          displayName: "Run Jest Tests"
+
+- stage: BuildAndPush
+  displayName: "Build Docker Image & Push to ECR"
+  dependsOn: Tests
+  condition: succeeded()
+
+  jobs:
+    - job: BuildDocker
+      pool:
+        vmImage: "ubuntu-latest"
+
+      steps:
+        - checkout: self
+
+        # Install AWS CLI
+        - script: |
+            sudo apt-get update
+            sudo apt-get install -y awscli
+          displayName: "Install AWS CLI"
+
+        # Login to ECR
+        - script: |
+            aws ecr get-login-password --region $(AWS_REGION) | docker login \
+              --username AWS \
+              --password-stdin <YOUR_AWS_ACCOUNT_ID>.dkr.ecr.$(AWS_REGION).amazonaws.com
+          displayName: "Login to Amazon ECR"
+
+        # Build Docker image
+        - script: |
+            docker build -t $(ECR_REPOSITORY):$(IMAGE_TAG) .
+            docker tag $(ECR_REPOSITORY):$(IMAGE_TAG) <YOUR_AWS_ACCOUNT_ID>.dkr.ecr.$(AWS_REGION).amazonaws.com/$(ECR_REPOSITORY):$(IMAGE_TAG)
+          displayName: "Build Docker Image"
+
+        # Push Docker image to ECR
+        - script: |
+            docker push <YOUR_AWS_ACCOUNT_ID>.dkr.ecr.$(AWS_REGION).amazonaws.com/$(ECR_REPOSITORY):$(IMAGE_TAG)
+          displayName: "Push Docker Image to ECR"
+
+- stage: Deploy
+  displayName: "Deploy to ECS Fargate"
+  dependsOn: BuildAndPush
+  condition: succeeded()
+
+  jobs:
+    - job: ECSDeploy
+      pool:
+        vmImage: "ubuntu-latest"
+
+      steps:
+        - checkout: self
+
+        # Install AWS CLI
+        - script: |
+            sudo apt-get update
+            sudo apt-get install -y awscli jq
+          displayName: "Install AWS CLI + jq"
+
+        # Update the ECS task definition (in-place edit)
+        - script: |
+            echo "Fetching current task definition..."
+
+            TASK_DEF_ARN=$(aws ecs describe-services \
+              --cluster $(ECS_CLUSTER) \
+              --services $(ECS_SERVICE) \
+              --query "services[0].taskDefinition" \
+              --output text)
+
+            aws ecs describe-task-definition \
+              --task-definition $TASK_DEF_ARN \
+              > taskdef.json
+
+            echo "Updating container image..."
+
+            NEW_IMAGE="<YOUR_AWS_ACCOUNT_ID>.dkr.ecr.$(AWS_REGION).amazonaws.com/$(ECR_REPOSITORY):$(IMAGE_TAG)"
+
+            cat taskdef.json \
+              | jq --arg IMG "$NEW_IMAGE" '.taskDefinition.containerDefinitions[0].image = $IMG' \
+              | jq 'del(.taskDefinition.taskDefinitionArn)' \
+              | jq 'del(.taskDefinition.status)' \
+              | jq 'del(.taskDefinition.revision)' \
+              | jq 'del(.taskDefinition.requiresAttributes)' \
+              | jq 'del(.taskDefinition.compatibilities)' \
+              > new-taskdef.json
+
+            echo "Registering updated task definition..."
+            NEW_TASK_DEF_ARN=$(aws ecs register-task-definition \
+              --cli-input-json file://new-taskdef.json \
+              --query "taskDefinition.taskDefinitionArn" \
+              --output text)
+
+            echo "Updating ECS Service..."
+            aws ecs update-service \
+              --cluster $(ECS_CLUSTER) \
+              --service $(ECS_SERVICE) \
+              --task-definition "$NEW_TASK_DEF_ARN"
+          displayName: "Update Task Definition & ECS Service"
+
