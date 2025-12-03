@@ -84,6 +84,10 @@ export default class ErrorHandler extends Error {
     return new ErrorHandler(message, 500, ErrorType.INTERNAL_SERVER_ERROR, metadata);
   }
 
+  static ServiceUnavailable(message: string, metadata?: Record<string, unknown>): ErrorHandler {
+    return new ErrorHandler(message, 503, ErrorType.SERVICE_UNAVAILABLE, metadata);
+  }
+
   /**
    * @param message - Error message
    * @returns ErrorHandler instance for Database Error

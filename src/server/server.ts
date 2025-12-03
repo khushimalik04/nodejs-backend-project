@@ -26,6 +26,7 @@ import { asyncHandler } from '@/utils/asyncHandler';
 import userRoutes from '@/routes/user.routes';
 import authRoutes from '@/routes/auth.routes';
 import taskRoutes from '@/routes/task.routes';
+import healthRoutes from '@/routes/health.routes';
 
 // Initialize Express app
 const app: express.Application = express();
@@ -69,6 +70,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/api/users', userRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/health', healthRoutes);
 
 /**
  * 404 Handler
