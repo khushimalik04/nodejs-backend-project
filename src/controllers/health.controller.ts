@@ -149,7 +149,7 @@ export const dbHealthHandler = asyncHandler(async (_req: ExpressRequest, res: Ex
 
     logger.error('Database health check failed:', {
       error: error instanceof Error ? error.message : 'Unknown error',
-      code: (error as any)?.code,
+      code: (error as Error & { code?: string })?.code,
       responseTime: totalTime,
     });
 
@@ -159,7 +159,7 @@ export const dbHealthHandler = asyncHandler(async (_req: ExpressRequest, res: Ex
       database: {
         connected: false,
         error: error instanceof Error ? error.message : 'Unknown database error',
-        code: (error as any)?.code,
+        code: (error as Error & { code?: string })?.code,
         responseTime: totalTime,
       },
     };
